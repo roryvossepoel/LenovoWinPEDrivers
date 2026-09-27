@@ -1,19 +1,19 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Split-Path -Parent $here
-$modulePath = Join-Path $repoRoot 'LenovoWinPEDrivers.psd1'
-$fixturePath = Join-Path $here 'fixtures\recipecard.sample.json'
-
 Describe 'LenovoWinPEDrivers' {
     BeforeAll {
-        Import-Module $modulePath -Force
+        $here = $PSScriptRoot
+        $repoRoot = Split-Path -Parent $here
+        $script:modulePath = Join-Path $repoRoot 'LenovoWinPEDrivers.psd1'
+        $script:fixturePath = Join-Path $here 'fixtures\recipecard.sample.json'
+
+        Import-Module $script:modulePath -Force
     }
 
     It 'imports successfully' {
-        Get-Module LenovoWinPEDrivers | Should -Not -BeNullOrEmpty
+        Get-Module -Name LenovoWinPEDrivers | Should -Not -BeNullOrEmpty
     }
 
     It 'resolves a Lenovo model by Machine Type' {
-        $result = Get-LenovoWinPEModel -MachineType 21KD -CatalogUri $fixturePath
+        $result = Get-LenovoWinPEModel -MachineType 21KD -CatalogUri $script:fixturePath
 
         $result.Model | Should -Be 'ThinkPad X1 Carbon Gen 12'
         $result.Family | Should -Be 'ThinkPad'
@@ -22,7 +22,7 @@ Describe 'LenovoWinPEDrivers' {
     }
 
     It 'resolves the WinPE package through RecipeCards and WinPEPacks' {
-        $result = Get-LenovoWinPEDriverPackInfo -MachineType 21KD -CatalogUri $fixturePath
+        $result = Get-LenovoWinPEDriverPackInfo -MachineType 21KD -CatalogUri $script:fixturePath
 
         $result.Model | Should -Be 'ThinkPad X1 Carbon Gen 12'
         $result.OperatingSystem | Should -Be 'Windows 11'
@@ -33,14 +33,14 @@ Describe 'LenovoWinPEDrivers' {
     }
 
     It 'supports model-name lookup' {
-        $result = Get-LenovoWinPEDriverPackInfo -Model '*Carbon Gen 12' -CatalogUri $fixturePath
+        $result = Get-LenovoWinPEDriverPackInfo -Model '*Carbon Gen 12' -CatalogUri $script:fixturePath
 
         @($result).Count | Should -Be 1
         $result.MachineTypes | Should -Contain '21KD'
     }
 
     It 'returns no result for an unknown Machine Type' {
-        $result = @(Get-LenovoWinPEDriverPackInfo -MachineType 9999 -CatalogUri $fixturePath)
+        $result = @(Get-LenovoWinPEDriverPackInfo -MachineType 9999 -CatalogUri $script:fixturePath)
         $result.Count | Should -Be 0
     }
 }
