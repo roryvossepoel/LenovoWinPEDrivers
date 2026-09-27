@@ -32,6 +32,14 @@ Describe 'LenovoWinPEDrivers' {
         $result.Available | Should -BeTrue
     }
 
+    It 'ignores WinPE 10 mappings' {
+        $result = @(Get-LenovoWinPEDriverPackInfo -MachineType 21KD -CatalogUri $script:fixturePath)
+
+        $result.Count | Should -Be 1
+        $result.WinPE | Should -Be 'WinPE 11'
+        $result.OperatingSystem | Should -Be 'Windows 11'
+    }
+
     It 'supports model-name lookup' {
         $result = Get-LenovoWinPEDriverPackInfo -Model '*Carbon Gen 12' -CatalogUri $script:fixturePath
 
