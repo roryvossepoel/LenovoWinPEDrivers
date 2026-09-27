@@ -8,12 +8,7 @@ on:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        os: [windows-latest]
-        pwsh: [powershell, pwsh]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +20,15 @@ jobs:
             Install-Module Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
           }
 
-      - name: Test module manifest
-        shell: ${{ matrix.pwsh }}
+      - name: Validate in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          Test-ModuleManifest .\LenovoWinPEDrivers.psd1 -ErrorAction Stop | Out-Host
+          Import-Module .\LenovoWinPEDrivers.psd1 -Force
+          Get-Command -Module LenovoWinPEDrivers | Format-Table -AutoSize
+
+      - name: Validate in PowerShell 7
+        shell: pwsh
         run: |
           Test-ModuleManifest ./LenovoWinPEDrivers.psd1 -ErrorAction Stop | Out-Host
           Import-Module ./LenovoWinPEDrivers.psd1 -Force
