@@ -9,6 +9,10 @@ function Get-LenovoWinPECatalog {
     )
 
     try {
+        if (Test-Path -LiteralPath $CatalogUri -PathType Leaf) {
+            return Get-Content -LiteralPath $CatalogUri -Raw -ErrorAction Stop | ConvertFrom-Json
+        }
+
         Invoke-RestMethod -Uri $CatalogUri -UseBasicParsing -ErrorAction Stop
     }
     catch {
