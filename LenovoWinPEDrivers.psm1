@@ -220,10 +220,36 @@ function Resolve-LenovoWinPEDownload {
     )
 
     $supportUri = [string]$Pack.Url
-    if ($supportUri -match '^https://support\.lenovo\.com/downloads/(ds\d+)
+
+    if ($supportUri -match '^https://support\.lenovo\.com/downloads/(ds\d+)$') {
+        $supportUri = "https://support.lenovo.com/us/en/downloads/$($Matches[1])"
+    }
+
+    $headers = @{
+        'User-Agent'      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'
+        'Accept'          = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+        'Accept-Language' = 'en-US,en;q=0.9'
+        'Cache-Control'   = 'no-cache'
+        'Pragma'          = 'no-cache'
+    }
+
+    try {
+        $response = Invoke-WebRequest -Uri $supportUri -Headers $headers -UseBasicParsing -ErrorAction Stop
+    }
+    catch {
+        throw "Unable to read Lenovo support page '$supportUri'. $($_.Exception.Message)"
+    }
+
+    if (-not $response.PSObject.Properties['Content']) {
+        throw "Lenovo support page '$supportUri' returned no readable HTML content."
+    }
+
+    $normalized = [System.Net.WebUtility]::HtmlDecode(([string]$response.Content -replace '\\/', '/'))
+
+    $directPattern = "https://download\.lenovo\.com/[^\x22']+?\.exe(?:\?[^\x22']*)?"
     $directMatches = [regex]::Matches(
         $normalized,
-        'https://download\.lenovo\.com/[^"'']+?\.exe(?:\?[^"'']*)?',
+        $directPattern,
         [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
     )
 
@@ -233,7 +259,11 @@ function Resolve-LenovoWinPEDownload {
             Select-Object -Unique
     )
 
-    $preferred = @($directUrls | Where-Object { $_ -match '(?i)(?:pe11|winpe11)' }) | Select-Object -First 1
+    $preferred = @(
+        $directUrls |
+            Where-Object { $_ -match '(?i)(?:pe11|winpe11)' }
+    ) | Select-Object -First 1
+
     if (-not $preferred) {
         $preferred = $directUrls | Select-Object -First 1
     }
@@ -249,10 +279,15 @@ function Resolve-LenovoWinPEDownload {
         $normalized,
         '(?i)\b[A-Za-z0-9][A-Za-z0-9._-]*?(?:pe11|winpe11)[A-Za-z0-9._-]*?\.exe\b'
     )
-    $fileName = @($fileMatches | ForEach-Object { $_.Value } | Select-Object -Unique) | Select-Object -First 1
+
+    $fileName = @(
+        $fileMatches |
+            ForEach-Object { $_.Value } |
+            Select-Object -Unique
+    ) | Select-Object -First 1
 
     if (-not $fileName) {
-        throw "Unable to locate the WinPE 11 package filename on Lenovo support page '$($Pack.Url)'."
+        throw "Unable to locate the WinPE 11 package filename on Lenovo support page '$supportUri'."
     }
 
     $basePaths = switch ($Pack.Family) {
@@ -264,6 +299,7 @@ function Resolve-LenovoWinPEDownload {
 
     foreach ($base in $basePaths) {
         $candidate = $base + $fileName
+
         try {
             $head = Invoke-WebRequest -Uri $candidate -Method Head -UseBasicParsing -ErrorAction Stop
             if ($head.StatusCode -ge 200 -and $head.StatusCode -lt 400) {
