@@ -289,7 +289,8 @@ function Save-LenovoWinPEDriverPack {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
-        [ValidatePattern('^[A-Za-z0-9]{4}
+        [ValidatePattern('^[A-Za-z0-9]{4}$')]
+        [string]$MachineType,
 
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
@@ -313,15 +314,15 @@ function Save-LenovoWinPEDriverPack {
 
     if ((Test-Path -LiteralPath $destination) -and -not $Force) {
         return [pscustomobject]@{
-            PSTypeName   = 'LenovoWinPEDrivers.Result'
-            MachineType  = $MachineType.ToUpperInvariant()
-            Model        = $pack.Model
-            WinPE        = $pack.WinPE
-            PackageId    = $pack.PackageId
-            FileName     = $download.FileName
-            DownloadUrl  = $download.DownloadUrl
-            Status       = 'Current'
-            Path         = $destination
+            PSTypeName  = 'LenovoWinPEDrivers.Result'
+            MachineType = $MachineType.ToUpperInvariant()
+            Model       = $pack.Model
+            WinPE       = $pack.WinPE
+            PackageId   = $pack.PackageId
+            FileName    = $download.FileName
+            DownloadUrl = $download.DownloadUrl
+            Status      = 'Current'
+            Path        = $destination
         }
     }
 
@@ -332,15 +333,15 @@ function Save-LenovoWinPEDriverPack {
     Invoke-WebRequest -Uri $download.DownloadUrl -OutFile $destination -UseBasicParsing -ErrorAction Stop
 
     [pscustomobject]@{
-        PSTypeName   = 'LenovoWinPEDrivers.Result'
-        MachineType  = $MachineType.ToUpperInvariant()
-        Model        = $pack.Model
-        WinPE        = $pack.WinPE
-        PackageId    = $pack.PackageId
-        FileName     = $download.FileName
-        DownloadUrl  = $download.DownloadUrl
-        Status       = 'Saved'
-        Path         = $destination
+        PSTypeName  = 'LenovoWinPEDrivers.Result'
+        MachineType = $MachineType.ToUpperInvariant()
+        Model       = $pack.Model
+        WinPE       = $pack.WinPE
+        PackageId   = $pack.PackageId
+        FileName    = $download.FileName
+        DownloadUrl = $download.DownloadUrl
+        Status      = 'Saved'
+        Path        = $destination
     }
 }
 
