@@ -4,8 +4,13 @@
       "id": "540",
       "series": "X-SERIES",
       "name": "ThinkPad X1 Carbon Gen 12",
-      "types": ["21KD", "21KC"],
-      "smbios": ["N3YE"],
+      "types": [
+        "21KD",
+        "21KC"
+      ],
+      "smbios": [
+        "N3YE"
+      ],
       "version": "ThinkPad X1 Carbon Gen 12",
       "image": "x1carbon12.png"
     }
@@ -17,6 +22,10 @@
     {
       "id": "7",
       "name": "Windows 11"
+    },
+    {
+      "id": "6",
+      "name": "Windows 10 64-bit"
     }
   ],
   "WinPEPacks": [
@@ -29,6 +38,11 @@
       "id": "221",
       "version": "WinPE 11",
       "url": "Import NIC and Storage drivers from the SCCM Driver Pack."
+    },
+    {
+      "id": "219",
+      "version": "WinPE 10",
+      "url": "https://support.lenovo.com/downloads/ds568138"
     }
   ],
   "SCCMPacks": [],
@@ -40,8 +54,23 @@
       "osId": "7",
       "apps": [],
       "sccmPack": "",
-      "winpePacks": ["220"],
+      "winpePacks": [
+        "220"
+      ],
       "creationDate": "2026-01-01 00:00:00",
+      "biosUrl": "",
+      "note": ""
+    },
+    {
+      "recipeId": "1999",
+      "modelId": "540",
+      "osId": "6",
+      "apps": [],
+      "sccmPack": "",
+      "winpePacks": [
+        "219"
+      ],
+      "creationDate": "2025-12-01 00:00:00",
       "biosUrl": "",
       "note": ""
     }
