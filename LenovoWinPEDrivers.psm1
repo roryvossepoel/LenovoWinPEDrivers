@@ -211,4 +211,139 @@ function Get-LenovoWinPEDriverPackInfo {
     }
 }
 
-Export-ModuleMember -Function Get-LenovoWinPEModel, Get-LenovoWinPEDriverPackInfo
+
+function Resolve-LenovoWinPEDownload {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object]$Pack
+    )
+
+    $response = Invoke-WebRequest -Uri $Pack.Url -UseBasicParsing -ErrorAction Stop
+    $content = [string]$response.Content
+
+    $normalized = $content -replace '\\/', '/'
+    $normalized = [System.Net.WebUtility]::HtmlDecode($normalized)
+
+    $directMatches = [regex]::Matches(
+        $normalized,
+        'https://download\.lenovo\.com/[^"'']+?\.exe(?:\?[^"'']*)?',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    )
+
+    $directUrls = @(
+        $directMatches |
+            ForEach-Object { $_.Value } |
+            Select-Object -Unique
+    )
+
+    $preferred = @($directUrls | Where-Object { $_ -match '(?i)(?:pe11|winpe11)' }) | Select-Object -First 1
+    if (-not $preferred) {
+        $preferred = $directUrls | Select-Object -First 1
+    }
+
+    if ($preferred) {
+        return [pscustomobject]@{
+            DownloadUrl = $preferred
+            FileName    = [IO.Path]::GetFileName(([uri]$preferred).AbsolutePath)
+        }
+    }
+
+    $fileMatches = [regex]::Matches(
+        $normalized,
+        '(?i)\b[A-Za-z0-9][A-Za-z0-9._-]*?(?:pe11|winpe11)[A-Za-z0-9._-]*?\.exe\b'
+    )
+    $fileName = @($fileMatches | ForEach-Object { $_.Value } | Select-Object -Unique) | Select-Object -First 1
+
+    if (-not $fileName) {
+        throw "Unable to locate the WinPE 11 package filename on Lenovo support page '$($Pack.Url)'."
+    }
+
+    $basePaths = switch ($Pack.Family) {
+        'ThinkPad'     { @('https://download.lenovo.com/pccbbs/mobiles/') }
+        'ThinkCentre'  { @('https://download.lenovo.com/pccbbs/thinkcentre_drivers/', 'https://download.lenovo.com/pccbbs/desktop/') }
+        'ThinkStation' { @('https://download.lenovo.com/pccbbs/thinkstation/', 'https://download.lenovo.com/pccbbs/desktop/') }
+        default        { @('https://download.lenovo.com/pccbbs/mobiles/', 'https://download.lenovo.com/pccbbs/desktop/') }
+    }
+
+    foreach ($base in $basePaths) {
+        $candidate = $base + $fileName
+        try {
+            $head = Invoke-WebRequest -Uri $candidate -Method Head -UseBasicParsing -ErrorAction Stop
+            if ($head.StatusCode -ge 200 -and $head.StatusCode -lt 400) {
+                return [pscustomobject]@{
+                    DownloadUrl = $candidate
+                    FileName    = $fileName
+                }
+            }
+        }
+        catch {
+            Write-Verbose "Lenovo download candidate did not resolve: $candidate"
+        }
+    }
+
+    throw "Lenovo WinPE 11 package '$fileName' was found, but its download URL could not be resolved."
+}
+
+function Save-LenovoWinPEDriverPack {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[A-Za-z0-9]{4}
+)]
+        [string]$MachineType,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+
+        [switch]$Force
+    )
+
+    $pack = @(Get-LenovoWinPEDriverPackInfo -MachineType $MachineType) | Select-Object -First 1
+    if (-not $pack) {
+        throw "No Lenovo WinPE 11 driver pack was found for Machine Type '$MachineType'."
+    }
+
+    $download = Resolve-LenovoWinPEDownload -Pack $pack
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        New-Item -ItemType Directory -Path $Path -Force | Out-Null
+    }
+
+    $destination = Join-Path $Path $download.FileName
+
+    if ((Test-Path -LiteralPath $destination) -and -not $Force) {
+        return [pscustomobject]@{
+            PSTypeName   = 'LenovoWinPEDrivers.Result'
+            MachineType  = $MachineType.ToUpperInvariant()
+            Model        = $pack.Model
+            WinPE        = $pack.WinPE
+            PackageId    = $pack.PackageId
+            FileName     = $download.FileName
+            DownloadUrl  = $download.DownloadUrl
+            Status       = 'Current'
+            Path         = $destination
+        }
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($destination, "Download Lenovo WinPE 11 driver pack $($pack.PackageId)")) {
+        return
+    }
+
+    Invoke-WebRequest -Uri $download.DownloadUrl -OutFile $destination -UseBasicParsing -ErrorAction Stop
+
+    [pscustomobject]@{
+        PSTypeName   = 'LenovoWinPEDrivers.Result'
+        MachineType  = $MachineType.ToUpperInvariant()
+        Model        = $pack.Model
+        WinPE        = $pack.WinPE
+        PackageId    = $pack.PackageId
+        FileName     = $download.FileName
+        DownloadUrl  = $download.DownloadUrl
+        Status       = 'Saved'
+        Path         = $destination
+    }
+}
+
+Export-ModuleMember -Function Get-LenovoWinPEModel, Get-LenovoWinPEDriverPackInfo, Save-LenovoWinPEDriverPack
