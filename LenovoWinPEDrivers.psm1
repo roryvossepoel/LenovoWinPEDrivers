@@ -9,11 +9,15 @@ function Get-LenovoWinPECatalog {
     )
 
     try {
+        if ($CatalogUri -match '^https?://') {
+            return Invoke-RestMethod -Uri $CatalogUri -UseBasicParsing -ErrorAction Stop
+        }
+
         if (Test-Path -LiteralPath $CatalogUri -PathType Leaf) {
             return Get-Content -LiteralPath $CatalogUri -Raw -ErrorAction Stop | ConvertFrom-Json
         }
 
-        Invoke-RestMethod -Uri $CatalogUri -UseBasicParsing -ErrorAction Stop
+        throw "Catalog path does not exist: $CatalogUri"
     }
     catch {
         throw "Unable to retrieve Lenovo Deployment Recipe Card catalog from '$CatalogUri'. $($_.Exception.Message)"
