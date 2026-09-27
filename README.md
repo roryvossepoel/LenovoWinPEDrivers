@@ -1,6 +1,6 @@
 # LenovoWinPEDrivers
 
-`LenovoWinPEDrivers` is a PowerShell module for discovering Lenovo Windows PE driver packs from Lenovo's official Deployment Recipe Card data.
+`LenovoWinPEDrivers` is a PowerShell module for discovering Lenovo **WinPE 11** driver packs from Lenovo's official Deployment Recipe Card data.
 
 The module reads Lenovo's machine-readable Recipe Card catalog at:
 
@@ -71,7 +71,7 @@ PackageId    : DS568138
 Url          : https://support.lenovo.com/downloads/ds568138
 ```
 
-Without a selector, all WinPE mappings in Lenovo's current Recipe Card are returned.
+Without a selector, all **WinPE 11** mappings in Lenovo's current Recipe Card are returned. WinPE 10 mappings are intentionally ignored.
 
 ## Source
 
@@ -84,11 +84,12 @@ The Recipe Card web application itself resolves models, Machine Types, operating
 
 ## Scope
 
-The initial version focuses on reliable catalog discovery and normalization.
+The initial version focuses on reliable **WinPE 11** catalog discovery and normalization.
 
 It does **not**:
 
 - inspect the hardware of the build machine;
+- return or download WinPE 10 driver packs;
 - inject drivers into a Windows PE image;
 - maintain a static model-to-package mapping;
 - scrape Lenovo's Recipe Card HTML.
