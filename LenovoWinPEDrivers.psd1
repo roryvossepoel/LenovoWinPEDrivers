@@ -11,6 +11,7 @@
     FunctionsToExport = @(
         'Get-LenovoWinPEModel'
         'Get-LenovoWinPEDriverPackInfo'
+        'Save-LenovoWinPEDriverPack'
     )
 
     CmdletsToExport   = @()
