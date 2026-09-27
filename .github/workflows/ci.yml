@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        pwsh: [powershell, pwsh]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge 5.0)) {
+            Install-Module Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+          }
+
+      - name: Test module manifest
+        shell: ${{ matrix.pwsh }}
+        run: |
+          Test-ModuleManifest ./LenovoWinPEDrivers.psd1 -ErrorAction Stop | Out-Host
+          Import-Module ./LenovoWinPEDrivers.psd1 -Force
+          Get-Command -Module LenovoWinPEDrivers | Format-Table -AutoSize
+
+      - name: Run Pester
+        shell: pwsh
+        run: |
+          Invoke-Pester ./tests -CI
+
+  live-catalog:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lenovo Recipe Card smoke test
+        shell: pwsh
+        run: |
+          Import-Module ./LenovoWinPEDrivers.psd1 -Force
+          $models = @(Get-LenovoWinPEModel)
+          $packs = @(Get-LenovoWinPEDriverPackInfo)
+
+          if ($models.Count -lt 1) {
+            throw 'Lenovo Recipe Card returned no models.'
+          }
+
+          if ($packs.Count -lt 1) {
+            throw 'Lenovo Recipe Card returned no WinPE package mappings.'
+          }
+
+          $models | Select-Object -First 5 | Format-Table -AutoSize
+          $packs | Select-Object -First 5 | Format-List
