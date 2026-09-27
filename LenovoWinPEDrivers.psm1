@@ -112,8 +112,6 @@ function Get-LenovoWinPEDriverPackInfo {
         [ValidatePattern('^[A-Za-z0-9]{4}$')]
         [string]$MachineType,
 
-        [string]$OperatingSystem,
-
         [switch]$IncludeUnavailable,
 
         [string]$CatalogUri = $script:LenovoRecipeCardUri
@@ -165,10 +163,6 @@ function Get-LenovoWinPEDriverPackInfo {
         $osInfo = if ($osLookup.ContainsKey($osId)) { $osLookup[$osId] } else { $null }
         $osName = if ($osInfo) { [string]$osInfo.name } else { $osId }
 
-        if ($OperatingSystem -and $osName -notlike $OperatingSystem) {
-            continue
-        }
-
         foreach ($winpeId in @($recipe.winpePacks)) {
             $winpeKey = [string]$winpeId
             $winpe = if ($winpeLookup.ContainsKey($winpeKey)) { $winpeLookup[$winpeKey] } else { $null }
@@ -179,6 +173,11 @@ function Get-LenovoWinPEDriverPackInfo {
 
             $url = [string]$winpe.url
             $version = [string]$winpe.version
+
+            if ($version -notmatch '(?i)^WinPE\s*11(?:\b|$)') {
+                continue
+            }
+
             $available = -not (
                 [string]::IsNullOrWhiteSpace($url) -or
                 $url -match '(?i)no winpe' -or
